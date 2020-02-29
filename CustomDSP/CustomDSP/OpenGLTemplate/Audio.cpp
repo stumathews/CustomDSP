@@ -1,6 +1,18 @@
 #include "Audio.h"
+#include <iostream>
+#include "CircularBuffer.h"
+#include "Game.h"
+
 
 #pragma comment(lib, "lib/fmod_vc.lib")
+
+//circular_buffer<float> cbuf1(1024);
+//circular_buffer<float> cbuf2(1024);
+
+float buffer1[1024];
+float buffer2[1024];
+
+CCamera* camera;
 
 /*
 I've made these two functions non-member functions
@@ -21,29 +33,56 @@ FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE *dsp_state, float *inbuffer, f
 {
 	FMOD::DSP *thisdsp = (FMOD::DSP *)dsp_state->instance;
 
-	for (unsigned int samp = 0; samp < length; samp++)
+	for (unsigned int n = 0; n < length; n++) 
 	{
-		for (int chan = 0; chan < *outchannels; chan++)
+		int ci1 = n;
+		int ci2 = n;
+		for (int chan = 0; chan < *outchannels; chan++) 
 		{
-			/*
-			This DSP filter just halves the volume!
-			Input is modified, and sent to output.
-			*/
-			outbuffer[(samp * *outchannels) + chan] = inbuffer[(samp * inchannels) + chan] * 0.2f;
+			// input signal
+			float* x = &inbuffer[(n * inchannels) + chan];
+
+			// Position of output signal
+			float* y = &outbuffer[(n * *outchannels) + chan];
+			
+			// Manipulate the input signal by a factor of 0.2
+			float camX = camera->GetPosition().x;
+			float camZ = camera->GetPosition().z;
+			float orient = camera->GetView().x;
+			*y = *x * orient;// camera->GetPosition().x;
+			
+			// Store input signals for both channels into separate circular buffers
+			if (chan == 0)
+			{
+				buffer1[ci1] = *y;
+				ci1 = (ci1 + 1) % 1024;
+			}
+			if (chan == 1)
+			{
+				buffer2[ci2] = *y;
+				ci2 = (ci2 + 1) % 1024;
+			}
 		}
+		
 	}
 
 	return FMOD_OK;
 }
 
 CAudio::CAudio()
-{}
+{
+
+}
 
 CAudio::~CAudio()
-{}
-
-bool CAudio::Initialise()
 {
+	m_FmodSystem->release();
+}
+
+bool CAudio::Initialise(CCamera* cam)
+{
+	camera = cam;
+
 	// Create an FMOD system
 	result = FMOD::System_Create(&m_FmodSystem);
 	FmodErrorCheck(result);
@@ -56,8 +95,9 @@ bool CAudio::Initialise()
 	if (result != FMOD_OK) 
 		return false;
 
-
-
+	// prepare our buffer
+	memset(&buffer1, 0, 1024);
+	memset(&buffer2, 0, 1024);
 	// Create the DSP effect
 	{
 		FMOD_DSP_DESCRIPTION dspdesc;
@@ -126,6 +166,7 @@ bool CAudio::PlayMusicStream()
 	if (result != FMOD_OK)
 		return false;
 
+	// Inject a custom DSP unit into the channel
 	m_musicChannel->addDSP(0, m_dsp);
 
 	return true;
