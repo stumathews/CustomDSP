@@ -167,15 +167,10 @@ TEST_F(CircularBufferTests, SimulateStream)
 	EXPECT_EQ(y[3], 80);
 }
 
-
-
-
-
 TEST_F(CircularBufferTests, ReadOldestEntry)
 {
 	cbuf<float> buf(4); //[0,0,0,0]
 	EXPECT_EQ(buf.ReadOldest(), 0);
-
 	buf.Put(1.0); //[1,0,0,0]
 	EXPECT_EQ(buf.ReadOldest(), 0);
 	buf.Put(2.0); //[1,2,0,0]

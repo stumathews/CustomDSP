@@ -7,23 +7,21 @@
 
 #pragma comment(lib, "lib/fmod_vc.lib")
 
+// Left and Right channel buffers
 cbuf<float> cbuffLeft(1024);
 cbuf<float> cbuffRight(1024);
+
+// historic buffer of samples for n-1.. calculation
 cbuf<float> prevBuf(1024);
 
-float leftBuffer[1024];
-float rightBuffer[1024];
-
+// Quick and easy access to the camera
 CCamera* _camera;
 Game* _game;
 
-// Lo-pass filter passes freqs 0-1000 Hz and removes > 1000
-// lowpass_fir = signal.firls(167, [0, 1000, 4000, 44000/2], [1, 1, 0, 0], fs=44000)
-float bCoefficients2[] =
-{
-	0.5, 0.9
-};
-
+// Lo-pass filter passes freqs 0-1000 Hz and removes those > 1000 Hz
+// Run using python filter design:
+// Arbitary num_taps used trial and error too find the most suitable looking frequency response without excessive band pass ripple or band cut attenuation
+// bCoefficients = signal.firls(167, [0, 1000, 4000, 44000/2], [1, 1, 0, 0], fs=44000)
 float bCoefficients[167] = 
 { 
 	1.32727108e-09,	7.07530209e-09,	2.35903552e-08,	6.13798167e-08,
@@ -95,15 +93,16 @@ FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE *dsp_state, float *inbuffer, f
 }
 
 
-void RecordInputSignal(unsigned int length, int* outchannels, float* inbuffer, int inchannels, float* outbuffer)
+// Save the left and right channel chunks into separate buffers (for clarity sake so we can process them separately)
+void RecordInputSignal(unsigned int chunkSize, int* outchannels, float* inbuffer, int inchannels, float* outbuffer)
 {
-	for (unsigned int n = 0; n < length; n++)
+	for (unsigned int n = 0; n < chunkSize; n++)
 	{
 		for (int chan = 0; chan < *outchannels; chan++)
 		{
 			float* x = &inbuffer[(n * inchannels) + chan];
 			float* y = &outbuffer[(n * *outchannels) + chan];
-						
+
 			if (chan == 0)
 				cbuffLeft.Put(*x);			
 			if (chan == 1)
@@ -113,10 +112,11 @@ void RecordInputSignal(unsigned int length, int* outchannels, float* inbuffer, i
 		float* leftChunk = cbuffLeft.ToArray();
 		float* rightChunk = cbuffRight.ToArray();
 
+		// We will trigger the filter using convolution when we're flying > 20 units off the ground!
 		if (_camera->GetPosition().y > 20)
 		{
-			ConvolutionHelper::ConvolveXn(leftChunk, length, n, &outbuffer[(n * *outchannels) + 0], &inbuffer[(n * inchannels) + 0], bCoefficients, 167, &prevBuf, _camera->GetPosition().x);
-			ConvolutionHelper::ConvolveXn(rightChunk, length, n, &outbuffer[(n * *outchannels) + 1], &inbuffer[(n * inchannels) + 1], bCoefficients, 167, &prevBuf, _camera->GetPosition().x);
+			ConvolutionHelper::ConvolveXn(leftChunk, chunkSize, n, &outbuffer[(n * *outchannels) + 0], &inbuffer[(n * inchannels) + 0], bCoefficients, 167, &prevBuf, _camera->GetPosition().x+1);
+			ConvolutionHelper::ConvolveXn(rightChunk, chunkSize, n, &outbuffer[(n * *outchannels) + 1], &inbuffer[(n * inchannels) + 1], bCoefficients, 167, &prevBuf, _camera->GetPosition().x+1);
 		}
 	}
 }
@@ -131,10 +131,9 @@ CAudio::~CAudio()
 	m_FmodSystem->release();
 }
 
-bool CAudio::Initialise(CCamera* camera, Game* game)
+bool CAudio::Initialise(CCamera* camera)
 {
 	_camera = camera;
-	_game = game;
 
 	// Create an FMOD system
 	result = FMOD::System_Create(&m_FmodSystem);
@@ -148,9 +147,6 @@ bool CAudio::Initialise(CCamera* camera, Game* game)
 	if (result != FMOD_OK) 
 		return false;
 
-	// prepare our buffer
-	memset(&leftBuffer, 0, 1024);
-	memset(&rightBuffer, 0, 1024);
 	// Create the DSP effect
 	{
 		FMOD_DSP_DESCRIPTION dspdesc;

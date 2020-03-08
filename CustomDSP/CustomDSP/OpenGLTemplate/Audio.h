@@ -12,7 +12,7 @@ class CAudio
 public:
 	CAudio();
 	~CAudio();
-	bool Initialise(CCamera* camera, Game* game);
+	bool Initialise(CCamera* camera);
 	bool LoadEventSound(char *filename);
 	bool PlayEventSound();
 	bool LoadMusicStream(char *filename);
