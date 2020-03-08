@@ -160,11 +160,11 @@ TEST_F(CircularBufferTests, SimulateStream)
 			ConvolutionHelper::ConvolveXn(chunk, nSamples, n, yn, xn, bCoefficients, numInvocations, &prevBuff);
 		}
 	}
-		
+	
 	EXPECT_EQ(y[0], 40);
-	EXPECT_EQ(y[1], 60);
-	EXPECT_EQ(y[2], 80);
-	EXPECT_EQ(y[3], 110);
+	EXPECT_EQ(y[1], 30);
+	EXPECT_EQ(y[2], 40);
+	EXPECT_EQ(y[3], 80);
 }
 
 

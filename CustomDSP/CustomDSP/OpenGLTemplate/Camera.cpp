@@ -123,6 +123,12 @@ void CCamera::TranslateByKeyboard(double dt)
 	if (GetKeyState(VK_RIGHT) & 0x80 || GetKeyState('D') & 0x80) {
 		Strafe(1.0*dt);
 	}
+	if (GetKeyState(VK_OEM_MINUS) & 0x80 || GetKeyState('M') & 0x80) {
+		m_position.y += 0.1;
+	}
+	if (GetKeyState(VK_OEM_MINUS) & 0x80 || GetKeyState('E') & 0x80) {
+		m_position.y -=  0.1;
+	}
 }
 // Return the camera position
 glm::vec3 CCamera::GetPosition() const

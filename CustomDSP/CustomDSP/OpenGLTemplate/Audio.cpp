@@ -7,8 +7,8 @@
 
 #pragma comment(lib, "lib/fmod_vc.lib")
 
-cbuf<float> cbufl(1024);
-cbuf<float> cbufr(1024);
+cbuf<float> cbuffLeft(1024);
+cbuf<float> cbuffRight(1024);
 cbuf<float> prevBuf(1024);
 
 float leftBuffer[1024];
@@ -99,27 +99,24 @@ void RecordInputSignal(unsigned int length, int* outchannels, float* inbuffer, i
 {
 	for (unsigned int n = 0; n < length; n++)
 	{
-		int leftIdx = n;
-		int rightIdx = n;
 		for (int chan = 0; chan < *outchannels; chan++)
 		{
-			// input signal
 			float* x = &inbuffer[(n * inchannels) + chan];
-
-			// Position of output signal
 			float* y = &outbuffer[(n * *outchannels) + chan];
 						
 			if (chan == 0)
-				cbufl.Put(*x);			
+				cbuffLeft.Put(*x);			
 			if (chan == 1)
-				cbufr.Put(*x);						
+				cbuffRight.Put(*x);						
 		}
 
-		float* leftChunk = cbufl.ToArray();
-		float* rightChunk = cbufl.ToArray();
-		if (_camera->GetPosition().y > 100) {
-			ConvolutionHelper::ConvolveXn(leftChunk, length, n, &outbuffer[(n * *outchannels) + 0], &inbuffer[(n * inchannels) + 0], bCoefficients, 167, &prevBuf);
-			ConvolutionHelper::ConvolveXn(rightChunk, length, n, &outbuffer[(n * *outchannels) + 1], &inbuffer[(n * inchannels) + 1], bCoefficients, 167, &prevBuf);
+		float* leftChunk = cbuffLeft.ToArray();
+		float* rightChunk = cbuffRight.ToArray();
+
+		if (_camera->GetPosition().y > 20)
+		{
+			ConvolutionHelper::ConvolveXn(leftChunk, length, n, &outbuffer[(n * *outchannels) + 0], &inbuffer[(n * inchannels) + 0], bCoefficients, 167, &prevBuf, _camera->GetPosition().x);
+			ConvolutionHelper::ConvolveXn(rightChunk, length, n, &outbuffer[(n * *outchannels) + 1], &inbuffer[(n * inchannels) + 1], bCoefficients, 167, &prevBuf, _camera->GetPosition().x);
 		}
 	}
 }
