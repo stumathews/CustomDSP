@@ -4,62 +4,80 @@ using namespace std;
 
 class CircularBufferTests_PreviousN_Test;
 
+/*
+A very simple circular buffer for my DSP assignment
+*/
 template <typename T>
 class cbuf
 {
-	friend CircularBufferTests_PreviousN_Test;
+	friend CircularBufferTests_PreviousN_Test; // For testing
 
 private:
-	int m_size;
-	vector<T> buf;
-	int writeIndex;
-	int readIndex;
+	int m_Size; // size of the buffer. It is fixed.
+	vector<T> m_Buffer; // underlying buffer, buffer[0] is considered the first item
+	int m_WriteIndex;
+	int m_ReadIndex;
 
-	int GetPrevNIndex(int n = 0) { return Wrap(GetNewestIndex() - n, m_size); }
+	// Internal functions for calulating indexes relative to n (last sample)
+	int GetPrevNIndex(int n = 0) { return Wrap(GetNewestIndex() - n, m_Size); }
 	int Wrap(int n, int arrayLength) { return ((n % arrayLength) + arrayLength) % arrayLength; }
 
 public:
-	cbuf(int size) :m_size(size),
-		writeIndex(0), readIndex(0) // start writing from index 0 ie the 'front'
-	{
-		buf = vector<T>(size);
-	}
-	~cbuf() {}
+	cbuf(int size) :m_Size(size), m_WriteIndex(0), m_ReadIndex(0), m_Buffer(vector<T>(size)) {}
+	
+	~cbuf() { m_Buffer.clear(); m_Buffer = { 0 }; }
 
-	T* ToArray() { return  &buf[0];	}
+	// Expose the underlying vector for direct poiinter maipultion.
+	// https://stackoverflow.com/questions/2923272/how-to-convert-vector-to-array
+	T* ToArray() { return  &m_Buffer[0];	}
 
 	// Overwrite oldest entry, returns the index of the item saved
 	int Put(T item)
 	{
-		buf[writeIndex] = item;
-		readIndex = writeIndex;
-		writeIndex = (writeIndex + 1) % m_size;
-		return readIndex;
+		m_Buffer[GetWriteIndex()] = item;
+		m_ReadIndex = GetWriteIndex();
+		m_WriteIndex = (m_WriteIndex + 1) % m_Size;
+		return m_ReadIndex;
 	}
 
-	T ReadNewestHead() { return buf[readIndex]; }
-	T ReadAtIndex(int i) { return buf[i]; }
-	T ReadFromBack(int n = 0) { return buf[(m_size - 1) - n]; }
-	T ReadN(int n = 0) { return buf[GetPrevNIndex(-n)]; }
-	T ReadOldest() { return buf[writeIndex]; }
-	int GetOldIndex() { return writeIndex; }
-	int GetNewestIndex() { return readIndex; }
-	int GetSize() { return buf.size(); }
+	// Read the value most recently added
+	T ReadNewestHead() { return m_Buffer[m_ReadIndex]; }
+
+	// Get the index of the last added item ie the newest
+	int GetNewestIndex() { return m_ReadIndex; }
+
+	// Read at a specific index. No bounds checking.
+	T ReadAtIndex(int i) { return m_Buffer[i]; }
+
+	// Read at value from the back of the buffer
+	T ReadFromBack(int n = 0) { return m_Buffer[(m_Size - 1) - n]; }
+
+	// Use index notation to reference items relative to the most recent item. ie n
+	// Supports notation like -3 as in n-3 as well as 0 which means n
+	// Not tested when n < 0
+	T ReadN(int n = 0) { return m_Buffer[GetPrevNIndex(-n)]; }
+
+	// Get the value that will be overwritten next
+	T ReadOldest() { return m_Buffer[m_WriteIndex]; }
+
+	// Get the index of the value that is going to be overwritten by next Put
+	int GetOldIndex() { return m_WriteIndex; }
+
+	// same as GetOldIndex()
+	int GetWriteIndex() { return GetOldIndex(); }
+
+	// Size of the underlying buffer.
+	int GetSize() { return m_Buffer.size(); }
 
 	void PrintContents()
 	{
 		cout << "[";
-		for (int i = 0; i < buf.size(); i++)
+		for (int i = 0; i < m_Buffer.size(); i++)
 		{
-			std::cout << buf[i];
-			if (i == buf.size())
+			std::cout << m_Buffer[i];
+			if (i !a= m_Buffer.size())
 				cout << ",";
 		}
 		cout << "]" << endl;;
 	}
-
-
-
-	int GetWriteIndex() { return writeIndex; }
-
 };
