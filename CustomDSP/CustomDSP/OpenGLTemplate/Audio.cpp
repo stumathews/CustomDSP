@@ -1,18 +1,74 @@
 #include "Audio.h"
 #include <iostream>
 #include "CircularBuffer.h"
+#include "ConvolutionHelper.h"
 #include "Game.h"
 
 
 #pragma comment(lib, "lib/fmod_vc.lib")
 
-//circular_buffer<float> cbuf1(1024);
-//circular_buffer<float> cbuf2(1024);
+cbuf<float> cbufl(1024);
+cbuf<float> cbufr(1024);
+cbuf<float> prevBuf(1024);
 
-float buffer1[1024];
-float buffer2[1024];
+float leftBuffer[1024];
+float rightBuffer[1024];
 
-CCamera* camera;
+CCamera* _camera;
+Game* _game;
+
+// Lo-pass filter passes freqs 0-1000 Hz and removes > 1000
+// lowpass_fir = signal.firls(167, [0, 1000, 4000, 44000/2], [1, 1, 0, 0], fs=44000)
+float bCoefficients2[] =
+{
+	0.5, 0.9
+};
+
+float bCoefficients[167] = 
+{ 
+	1.32727108e-09,	7.07530209e-09,	2.35903552e-08,	6.13798167e-08,
+	1.35025413e-07,	2.61011214e-07,	4.52468561e-07,	7.10288692e-07,
+	1.01105268e-06, 1.29375661e-06,	1.44915107e-06, 1.31721749e-06,
+	6.99215233e-07, -6.09896576e-07, -2.76567778e-06, -5.79738729e-06
+    -9.51992478e-06 -1.34528799e-05 -1.67727103e-05 -1.83283097e-05
+    -1.67482831e-05 -1.06578868e-05, 9.96105124e-07,1.85421958e-05,
+	4.11644680e-05,6.65585613e-05, 9.07756300e-05,1.08367774e-04,
+	1.12923355e-04,9.80256825e-05, 5.85860953e-05,-7.59809191e-06,
+	-9.83121612e-05,-2.05751240e-04,-3.16073463e-04,-4.10013742e-04
+    -4.64779102e-04 -4.57251857e-04 -3.68268824e-04 -1.87459443e-04,
+	8.21355058e-05,	4.20619816e-04,	7.89962302e-04,	1.13572036e-03,
+	1.39225130e-03,1.49135940e-03, 1.37366812e-03,1.00132456e-03,
+	3.70063355e-04, -4.81689159e-04, -1.46898551e-03, -2.46368958e-03,
+	-3.30599838e-03, -3.82395788e-03, -3.85934242e-03, -3.29683533e-03,
+	-2.09227443e-03 -2.95061462e-04, 1.94011546e-03, 4.35622133e-03,
+	6.61376299e-03, 8.32757109e-03, 9.11771253e-03, 8.66909448e-03, 
+	6.79211876e-03, 3.47543813e-03, -1.07821923e-03, -6.44088973e-03,
+	-1.19779649e-02, -1.68978896e-02, -2.03299780e-02, -2.14229946e-02
+	-1.94534396e-02, -1.39300362e-02, -4.68021905e-03, 8.09429657e-03,
+	2.38025752e-02, 4.14950657e-02, 5.99388933e-02, 7.77310134e-02,
+	9.34370982e-02, 1.05740158e-01, 1.13581088e-01, 1.16273874e-01,
+	1.13581088e-01, 1.05740158e-01, 9.34370982e-02, 7.77310134e-02,
+	5.99388933e-02, 4.14950657e-02, 2.38025752e-02, 8.09429657e-03
+	-4.68021905e-03, -1.39300362e-02, -1.94534396e-02, -2.14229946e-02,
+	-2.03299780e-02, -1.68978896e-02, -1.19779649e-02, -6.44088973e-03,
+	-1.07821923e-03, 3.47543813e-03, 6.79211876e-03, 8.66909448e-03,
+	9.11771253e-03, 8.32757109e-03, 6.61376299e-03, 4.35622133e-03, 
+	1.94011546e-03, -2.95061462e-04, -2.09227443e-03, -3.29683533e-03, 
+	-3.85934242e-03, -3.82395788e-03, -3.30599838e-03, -2.46368958e-03,
+	-1.46898551e-03, -4.81689159e-04, 3.70063355e-04, 1.00132456e-03,
+	1.37366812e-03, 1.49135940e-03, 1.39225130e-03, 1.13572036e-03,
+	7.89962302e-04, 4.20619816e-04, 8.21355058e-05, -1.87459443e-04, 
+	-3.68268824e-04, -4.57251857e-04, -4.64779102e-04, -4.10013742e-04,
+	-3.16073463e-04, -2.05751240e-04 -9.83121612e-05, -7.59809191e-06, 
+	5.85860953e-05, 9.80256825e-05, 1.12923355e-04, 1.08367774e-04, 
+	9.07756300e-05, 6.65585613e-05, 4.11644680e-05, 1.85421958e-05, 
+	9.96105124e-07, -1.06578868e-05, -1.67482831e-05, -1.83283097e-05,
+	-1.67727103e-05, -1.34528799e-05, -9.51992478e-06, -5.79738729e-06, 
+	-2.76567778e-06, -6.09896576e-07, 6.99215233e-07, 1.31721749e-06,
+	1.44915107e-06, 1.29375661e-06, 1.01105268e-06, 7.10288692e-07,
+	4.52468561e-07, 2.61011214e-07, 1.35025413e-07,6.13798167e-08,
+	2.35903552e-08,	7.07530209e-09, 1.32727108e-09
+};
 
 /*
 I've made these two functions non-member functions
@@ -33,40 +89,39 @@ FMOD_RESULT F_CALLBACK DSPCallback(FMOD_DSP_STATE *dsp_state, float *inbuffer, f
 {
 	FMOD::DSP *thisdsp = (FMOD::DSP *)dsp_state->instance;
 
-	for (unsigned int n = 0; n < length; n++) 
+	RecordInputSignal(length, outchannels, inbuffer, inchannels, outbuffer);
+
+	return FMOD_OK;
+}
+
+
+void RecordInputSignal(unsigned int length, int* outchannels, float* inbuffer, int inchannels, float* outbuffer)
+{
+	for (unsigned int n = 0; n < length; n++)
 	{
-		int ci1 = n;
-		int ci2 = n;
-		for (int chan = 0; chan < *outchannels; chan++) 
+		int leftIdx = n;
+		int rightIdx = n;
+		for (int chan = 0; chan < *outchannels; chan++)
 		{
 			// input signal
 			float* x = &inbuffer[(n * inchannels) + chan];
 
 			// Position of output signal
 			float* y = &outbuffer[(n * *outchannels) + chan];
-			
-			// Manipulate the input signal by a factor of 0.2
-			float camX = camera->GetPosition().x;
-			float camZ = camera->GetPosition().z;
-			float orient = camera->GetView().x;
-			*y = *x * orient;// camera->GetPosition().x;
-			
-			// Store input signals for both channels into separate circular buffers
+						
 			if (chan == 0)
-			{
-				buffer1[ci1] = *y;
-				ci1 = (ci1 + 1) % 1024;
-			}
+				cbufl.Put(*x);			
 			if (chan == 1)
-			{
-				buffer2[ci2] = *y;
-				ci2 = (ci2 + 1) % 1024;
-			}
+				cbufr.Put(*x);						
 		}
-		
-	}
 
-	return FMOD_OK;
+		float* leftChunk = cbufl.ToArray();
+		float* rightChunk = cbufl.ToArray();
+		if (_camera->GetPosition().y > 100) {
+			ConvolutionHelper::ConvolveXn(leftChunk, length, n, &outbuffer[(n * *outchannels) + 0], &inbuffer[(n * inchannels) + 0], bCoefficients, 167, &prevBuf);
+			ConvolutionHelper::ConvolveXn(rightChunk, length, n, &outbuffer[(n * *outchannels) + 1], &inbuffer[(n * inchannels) + 1], bCoefficients, 167, &prevBuf);
+		}
+	}
 }
 
 CAudio::CAudio()
@@ -79,9 +134,10 @@ CAudio::~CAudio()
 	m_FmodSystem->release();
 }
 
-bool CAudio::Initialise(CCamera* cam)
+bool CAudio::Initialise(CCamera* camera, Game* game)
 {
-	camera = cam;
+	_camera = camera;
+	_game = game;
 
 	// Create an FMOD system
 	result = FMOD::System_Create(&m_FmodSystem);
@@ -96,8 +152,8 @@ bool CAudio::Initialise(CCamera* cam)
 		return false;
 
 	// prepare our buffer
-	memset(&buffer1, 0, 1024);
-	memset(&buffer2, 0, 1024);
+	memset(&leftBuffer, 0, 1024);
+	memset(&rightBuffer, 0, 1024);
 	// Create the DSP effect
 	{
 		FMOD_DSP_DESCRIPTION dspdesc;

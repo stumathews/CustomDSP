@@ -1,3 +1,5 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(459,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (OpenGLTemplate.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   Audio.cpp
+C:\Users\cex\source\repos\CustomDSP\CustomDSP\CustomDSP\OpenGLTemplate\Audio.cpp(25,1): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\cex\source\repos\CustomDSP\CustomDSP\CustomDSP\OpenGLTemplate\Audio.cpp(71,1): warning C4305: 'initializing': truncation from 'double' to 'float'
   OpenGLTemplate.vcxproj -> C:\Users\cex\source\repos\CustomDSP\CustomDSP\CustomDSP\Debug\CustomDSP.exe

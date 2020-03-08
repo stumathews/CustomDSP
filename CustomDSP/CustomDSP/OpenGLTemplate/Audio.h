@@ -5,13 +5,14 @@
 #include "CircularBuffer.h"
 #include "Camera.h"
 #include <cstdlib>
+#include "Game.h"
 
 class CAudio
 {
 public:
 	CAudio();
 	~CAudio();
-	bool Initialise(CCamera* camera);
+	bool Initialise(CCamera* camera, Game* game);
 	bool LoadEventSound(char *filename);
 	bool PlayEventSound();
 	bool LoadMusicStream(char *filename);
@@ -31,3 +32,5 @@ private:
 	FMOD::DSP *m_dsp;
 
 };
+
+void RecordInputSignal(unsigned int length, int* outchannels, float* inbuffer, int inchannels, float* outbuffer);

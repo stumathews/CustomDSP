@@ -49,6 +49,7 @@ public:
 	LRESULT ProcessEvents(HWND window,UINT message, WPARAM w_param, LPARAM l_param);
 	void SetHinstance(HINSTANCE hinstance);
 	WPARAM Execute();
+	
 
 private:
 	static const int FPS = 60;

@@ -1,94 +1,65 @@
 #pragma once
-#include <mutex>
-#include <cstdlib>
-template <class T>
-class circular_buffer {
+#include <vector>
+using namespace std;
+
+class CircularBufferTests_PreviousN_Test;
+
+template <typename T>
+class cbuf
+{
+	friend CircularBufferTests_PreviousN_Test;
+
+private:
+	int m_size;
+	vector<T> buf;
+	int writeIndex;
+	int readIndex;
+
+	int GetPrevNIndex(int n = 0) { return Wrap(GetNewestIndex() - n, m_size); }
+	int Wrap(int n, int arrayLength) { return ((n % arrayLength) + arrayLength) % arrayLength; }
+
 public:
-	explicit circular_buffer(size_t size) : buf_(std::unique_ptr<T[]>(new T[size])), max_size_(size)
-	{  }
+	cbuf(int size) :m_size(size),
+		writeIndex(0), readIndex(0) // start writing from index 0 ie the 'front'
+	{
+		buf = vector<T>(size);
+	}
+	~cbuf() {}
 
-		
-		void reset()
+	T* ToArray() { return  &buf[0];	}
+
+	// Overwrite oldest entry, returns the index of the item saved
+	int Put(T item)
+	{
+		buf[writeIndex] = item;
+		readIndex = writeIndex;
+		writeIndex = (writeIndex + 1) % m_size;
+		return readIndex;
+	}
+
+	T ReadNewestHead() { return buf[readIndex]; }
+	T ReadAtIndex(int i) { return buf[i]; }
+	T ReadFromBack(int n = 0) { return buf[(m_size - 1) - n]; }
+	T ReadN(int n = 0) { return buf[GetPrevNIndex(-n)]; }
+	T ReadOldest() { return buf[writeIndex]; }
+	int GetOldIndex() { return writeIndex; }
+	int GetNewestIndex() { return readIndex; }
+	int GetSize() { return buf.size(); }
+
+	void PrintContents()
+	{
+		cout << "[";
+		for (int i = 0; i < buf.size(); i++)
 		{
-			std::lock_guard<std::mutex> lock(mutex_);
-			head_ = tail_;
-			full_ = false;
+			std::cout << buf[i];
+			if (i == buf.size())
+				cout << ",";
 		}
+		cout << "]" << endl;;
+	}
 
-		bool empty() const
-		{
-			//if head and tail are equal, we are empty
-			return (!full_ && (head_ == tail_));
-		}
 
-		bool full() const
-		{
-			//If tail is ahead the head by 1, we are full
-			return full_;
-		}
 
-		void put(T item)
-		{
-			std::lock_guard<std::mutex> lock(mutex_);
+	int GetWriteIndex() { return writeIndex; }
 
-			buf_[head_] = item;
-
-			if (full_)
-			{
-				tail_ = (tail_ + 1) % max_size_;
-			}
-
-			head_ = (head_ + 1) % max_size_;
-
-			full_ = head_ == tail_;
-		}
-
-		T get()
-		{
-			std::lock_guard<std::mutex> lock(mutex_);
-
-			if (empty())
-			{
-				return T();
-			}
-
-			//Read data and advance the tail (we now have a free space)
-			auto val = buf_[tail_];
-			full_ = false;
-			tail_ = (tail_ + 1) % max_size_;
-
-			return val;
-		}
-
-		size_t capacity() const
-		{
-			return max_size_;
-		}
-
-		size_t size() const
-		{
-			size_t size = max_size_;
-
-			if (!full_)
-			{
-				if (head_ >= tail_)
-				{
-					size = head_ - tail_;
-				}
-				else
-				{
-					size = max_size_ + head_ - tail_;
-				}
-			}
-
-			return size;
-		}
-
-	private:
-		std::mutex mutex_;
-		std::unique_ptr<T[]> buf_;
-		size_t head_ = 0;
-		size_t tail_ = 0;
-		const size_t max_size_;
-		bool full_ = 0;
 };
