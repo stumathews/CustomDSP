@@ -126,42 +126,7 @@ TEST_F(CircularBufferTests, ReadFromBack)
 	ASSERT_EQ(m_Buffer.ReadFromBack(3), 5.0); // n-3
 }
 
-TEST_F(CircularBufferTests, SimulateStream)
-{
-	const int nSamples = 4;
-	const int numInvocations = 4;
 
-	float bCoefficients[numInvocations] = { 10 /*n*/, 20 /*n-1*/, 30/*n-2*/ , 40/*n-3*/ }; // latest to earliest
-	
-	float y[numInvocations * nSamples] = {0};
-	float x[numInvocations][nSamples] = // arranged earliest to latest ie [0] = n-3 (where n = nSamples)
-	{
-		{1, 2, 3, 4}, /* as in: n-3, n-2, n-1, n */
-		{5, 6, 7, 8},
-		{9, 10, 11, 12},	
-		{13, 14, 15, 16},
-	};
-
-	cbuf<float> prevBuff(4);
-	
-	for (int call = 0; call < numInvocations; call++)
-	{		
-		float* chunk = &x[call][0];
-
-		for (int n = 0; n < nSamples; n++)
-		{
-			float* xn = &x[call][n]; 
-			float* yn = &y[(call * nSamples) + n];
-			
-			ConvolutionHelper::ConvolveXn(chunk, nSamples, n, yn, xn, bCoefficients, numInvocations, &prevBuff);
-		}
-	}
-	
-	EXPECT_EQ(y[0], 40);
-	EXPECT_EQ(y[1], 30);
-	EXPECT_EQ(y[2], 40);
-	EXPECT_EQ(y[3], 80);
-}
 
 TEST_F(CircularBufferTests, ReadOldestEntry)
 {
@@ -294,4 +259,63 @@ TEST_F(CircularBufferTests, PreviousN)
 	ASSERT_EQ(m_Buffer.ReadN(-4), 6);
 	ASSERT_EQ(m_Buffer.ReadN(-5), 5);
 	ASSERT_EQ(m_Buffer.ReadN(1), 3);
+}
+
+TEST_F(CircularBufferTests, Equals)
+{
+	cbuf<float> m_Buffer(4); //[0,0,0,0]
+	int i1 = m_Buffer.Put(1.0); //[1,0,0,0]
+	int i2 = m_Buffer.Put(2.0); //[1,2,0,0]
+	int i3 = m_Buffer.Put(3.0); //[1,2,3,0]
+	int i4 = m_Buffer.Put(4.0); //[1,2,3,4]
+	int i5 = m_Buffer.Put(5.0); //[5,2,3,4]
+	int i6 = m_Buffer.Put(6.0); //[5,6,3,4]
+
+	cbuf<float> m_Buffer1(4); //[0,0,0,0]
+	int m1 = m_Buffer1.Put(1.0); //[1,0,0,0]
+	int m2 = m_Buffer1.Put(2.0); //[1,2,0,0]
+	int m3 = m_Buffer1.Put(3.0); //[1,2,3,0]
+	int m4 = m_Buffer1.Put(4.0); //[1,2,3,4]
+	int m5 = m_Buffer1.Put(5.0); //[5,2,3,4]
+	int m6 = m_Buffer1.Put(6.0); //[5,6,3,4]
+
+	ASSERT_TRUE(m_Buffer == m_Buffer1) << "Buffer should report as being the same";
+}
+
+TEST_F(CircularBufferTests, InitWithArrayTest)
+{
+	float myArray[] = { 1.0f, 2.0f, 3.0f, 4.0f };
+	cbuf<float> myCBuff(&myArray[0], 4);
+
+	cbuf<float> control(4);
+	control.Put(1.0);
+	control.Put(2.0);
+	control.Put(3.0);
+	control.Put(4.0);
+	
+	ASSERT_EQ(4, myCBuff.GetSize());
+	ASSERT_TRUE(myCBuff == control);
+	
+}
+
+
+TEST_F(CircularBufferTests, EqualsNegativeTest)
+{
+	cbuf<float> m_Buffer(4); //[0,0,0,0]
+	int i1 = m_Buffer.Put(1.0); //[1,0,0,0]
+	int i2 = m_Buffer.Put(2.0); //[1,2,0,0]
+	int i3 = m_Buffer.Put(3.0); //[1,2,3,0]
+	int i4 = m_Buffer.Put(4.0); //[1,2,3,4]
+	int i5 = m_Buffer.Put(5.0); //[5,2,3,4]
+	int i6 = m_Buffer.Put(6.0); //[5,6,3,4]
+
+	cbuf<float> m_Buffer1(4); //[0,0,0,0]
+	int m1 = m_Buffer1.Put(1.0); //[1,0,0,0]
+	int m2 = m_Buffer1.Put(2.0); //[1,2,0,0]
+	int m3 = m_Buffer1.Put(3.0); //[1,2,3,0]
+	int m4 = m_Buffer1.Put(4.9); //[1,2,3,4]
+	int m5 = m_Buffer1.Put(5.0); //[5,2,3,4]
+	int m6 = m_Buffer1.Put(6.0); //[5,6,3,4]
+
+	ASSERT_FALSE(m_Buffer == m_Buffer1) << "Buffer should report as being the same";
 }

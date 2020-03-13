@@ -23,7 +23,14 @@ private:
 	int Wrap(int n, int arrayLength) { return ((n % arrayLength) + arrayLength) % arrayLength; }
 
 public:
-	cbuf(int size) :m_Size(size), m_WriteIndex(0), m_ReadIndex(0), m_Buffer(vector<T>(size)) {}
+	cbuf(unsigned size) :m_Size(size), m_WriteIndex(0), m_ReadIndex(0), m_Buffer(vector<T>(size)) {}
+
+	cbuf(T* values, unsigned length) : cbuf(length)
+	{
+		m_Buffer.clear();
+		
+		m_Buffer.insert(m_Buffer.end(), &values[0], &values[length]);
+	}
 	
 	~cbuf() { m_Buffer.clear(); m_Buffer = { 0 }; }
 
@@ -69,13 +76,25 @@ public:
 	// Size of the underlying buffer.
 	int GetSize() { return m_Buffer.size(); }
 
+	bool operator==(cbuf<T> otherBuffer)
+	{
+		if (otherBuffer.GetSize() != GetSize())
+			return false;
+		
+		for(auto i = 0; i < otherBuffer.GetSize();i++)
+			if (otherBuffer.ReadAtIndex(i) != ReadAtIndex(i))
+				return false;
+		
+		return true;
+	}	
+
 	void PrintContents()
 	{
 		cout << "[";
 		for (int i = 0; i < m_Buffer.size(); i++)
 		{
 			std::cout << m_Buffer[i];
-			if (i !a= m_Buffer.size())
+			if (i < m_Buffer.size())
 				cout << ",";
 		}
 		cout << "]" << endl;;
