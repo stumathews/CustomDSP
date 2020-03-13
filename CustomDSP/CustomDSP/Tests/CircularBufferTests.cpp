@@ -24,12 +24,9 @@ class CircularBufferTests : public ::testing::Test
 private:
 	
 protected:
-    void SetUp() override
-    {
-    }
+    void SetUp() override { }
 
-    void TearDown() override {}
-    
+    void TearDown() override {}    
 };
 
 TEST_F(CircularBufferTests, GetWriteIndex)
@@ -127,7 +124,6 @@ TEST_F(CircularBufferTests, ReadFromBack)
 
 	m_Buffer.Put(5.0); //everwrite oldest entry
 	ASSERT_EQ(m_Buffer.ReadFromBack(3), 5.0); // n-3
-
 }
 
 TEST_F(CircularBufferTests, SimulateStream)

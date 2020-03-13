@@ -115,10 +115,12 @@ void RecordInputSignal(unsigned int chunkSize, int* outchannels, float* inbuffer
 		// We will trigger the filter using convolution when we're flying > 20 units off the ground!
 		if (_camera->GetPosition().y > 20)
 		{
-			ConvolutionHelper::ConvolveXn(leftChunk, chunkSize, n, &outbuffer[(n * *outchannels) + 0], &inbuffer[(n * inchannels) + 0], bCoefficients, 167, &prevBuf, _camera->GetPosition().x+1);
-			ConvolutionHelper::ConvolveXn(rightChunk, chunkSize, n, &outbuffer[(n * *outchannels) + 1], &inbuffer[(n * inchannels) + 1], bCoefficients, 167, &prevBuf, _camera->GetPosition().x+1);
+			ConvolutionHelper::ConvolveXn(leftChunk, chunkSize, n, &outbuffer[(n * *outchannels) + 0], &inbuffer[(n * inchannels) + 0], bCoefficients, 167, &prevBuf, _camera->GetPosition().x + 1);
+			ConvolutionHelper::ConvolveXn(rightChunk, chunkSize, n, &outbuffer[(n * *outchannels) + 1], &inbuffer[(n * inchannels) + 1], bCoefficients, 167, &prevBuf, _camera->GetPosition().x + 1);
 		}
 	}
+
+	
 }
 
 CAudio::CAudio()
