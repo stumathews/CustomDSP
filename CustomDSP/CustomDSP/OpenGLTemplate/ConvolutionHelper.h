@@ -4,7 +4,7 @@ class ConvolutionHelper
 public:
 	// Swaps the signal and convolves the b coeficcients using previous values stored in circular buffer, updates the buffer
 	
-	static void ConvolveXn(const float* chunk, 
+	static void ConvolutionSum(const float* chunk, 
 						   const unsigned int numSamplesPerChunk, 
 		                   unsigned int n, //current or most recent sample 
 		                   float* yn, // output
@@ -14,10 +14,10 @@ public:
 						   cbuf<float>* prevSamples, 
 						   float coefficientScale = 1)
 	{
-		const auto swapped_chunk_sample = chunk[(numSamplesPerChunk - 1) - n];
+		const auto swapped_xn = chunk[(numSamplesPerChunk - 1) - n];
 		
 		*yn = *xn;
-		*yn = b_coefficients[0] * swapped_chunk_sample; // x[n] * b[0]
+		*yn = b_coefficients[0] * swapped_xn; // x[n] * b[0]
 
 		for (int b = 0; b < numCoefficients - 1; b++) // x[n-1] * b[1] etc...
 			*yn += (prevSamples->ReadN(-b) * (b_coefficients[b] * coefficientScale));
