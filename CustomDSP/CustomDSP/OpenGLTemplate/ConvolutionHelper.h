@@ -2,27 +2,27 @@
 class ConvolutionHelper
 {
 public:
-	// Swaps the signal and convolves the b coeficcients using previous values stored in circular buffer, updates the buffer
 	
-	static void ConvolutionSum(const float* chunk, 
-						   const unsigned int numSamplesPerChunk, 
-		                   unsigned int n, //current or most recent sample 
+	// Swaps the signal and convolves the b coefficients using previous values stored in circular buffer, updates the buffer	
+	static void convolution_sum(const float* chunk, 
+						   const unsigned int num_samples_per_chunk,
+						   const unsigned int n, //current or most recent sample 
 		                   float* yn, // output
 		                   const float* xn, // input
-	                       const float* b_coefficients, 
-						   int numCoefficients, 
-						   cbuf<float>* prevSamples, 
-						   float coefficientScale = 1)
+	                       const float* b_coefficients,
+						   const int num_coefficients, 
+						   cbuf<float>* prev_samples, // access to the previous samples
+						   const float coefficient_scale = 1) // Uses the camera's X position to scale the coefficients
 	{
-		const auto swapped_xn = chunk[(numSamplesPerChunk - 1) - n];
+		const auto swapped_xn = chunk[(num_samples_per_chunk - 1) - n];
 		
 		*yn = *xn;
 		*yn = b_coefficients[0] * swapped_xn; // x[n] * b[0]
 
-		for (int b = 0; b < numCoefficients - 1; b++) // x[n-1] * b[1] etc...
-			*yn += (prevSamples->ReadN(-b) * (b_coefficients[b] * coefficientScale));
+		for (auto b = 0; b < num_coefficients - 1; b++) // x[n-1] * b[1] etc...
+			*yn += (prev_samples->ReadN(-b) * (b_coefficients[b] * coefficient_scale));
 
-		prevSamples->Put(*xn);
+		prev_samples->Put(*xn);
 	}
 
 	/*
