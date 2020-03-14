@@ -4,18 +4,25 @@ class ConvolutionHelper
 public:
 	// Swaps the signal and convolves the b coeficcients using previous values stored in circular buffer, updates the buffer
 	
-	static void ConvolveXn(float* chunk, const unsigned int numSamplesPerChunk, unsigned int n, float* yn, const float* xn,
-	                       const float* b_coefficients, int numCoefficients, cbuf<float>* prevBuff, float coefficientScale = 1)
-	{		
-		auto swappedChunkSample = chunk[(numSamplesPerChunk - 1) - n];
+	static void ConvolveXn(const float* chunk, 
+						   const unsigned int numSamplesPerChunk, 
+		                   unsigned int n, //current or most recent sample 
+		                   float* yn, // output
+		                   const float* xn, // input
+	                       const float* b_coefficients, 
+						   int numCoefficients, 
+						   cbuf<float>* prevSamples, 
+						   float coefficientScale = 1)
+	{
+		const auto swapped_chunk_sample = chunk[(numSamplesPerChunk - 1) - n];
 		
 		*yn = *xn;
-		*yn = b_coefficients[0] * swappedChunkSample; // x[n] * b[0]
+		*yn = b_coefficients[0] * swapped_chunk_sample; // x[n] * b[0]
 
 		for (int b = 0; b < numCoefficients - 1; b++) // x[n-1] * b[1] etc...
-			*yn += (prevBuff->ReadN(-b) * (b_coefficients[b] * coefficientScale)) * swappedChunkSample ;
+			*yn += (prevSamples->ReadN(-b) * (b_coefficients[b] * coefficientScale));
 
-		prevBuff->Put(*xn);
+		prevSamples->Put(*xn);
 	}
 
 	/*
